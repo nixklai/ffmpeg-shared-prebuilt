@@ -1,0 +1,110 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: [ubuntu-18.04, ubuntu-16.04]
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    - name: Get dependencies from APK
+      run: sudo apt-get update -qq && sudo apt-get -y install \
+            autoconf \
+            automake \
+            build-essential \
+            cmake \
+            git-core \
+            libass-dev \
+            libfreetype6-dev \
+            libgnutls28-dev \
+            libsdl2-dev \
+            libtool \
+            libva-dev \
+            libvdpau-dev \
+            libvorbis-dev \
+            libxcb1-dev \
+            libxcb-shm0-dev \
+            libxcb-xfixes0-dev \
+            pkg-config \
+            texinfo \
+            wget \
+            yasm \
+            zlib1g-dev
+    - name: Make directories
+      run: mkdir -p ~/ffmpeg_sources ~/bin
+
+    # Runs a single command using the runners shell
+    - name: Get NASM
+      run: sudo apt-get install nasm
+
+    # Runs a set of commands using the runners shell
+    - name: Include h.264
+      run: sudo apt-get install libx264-dev
+      
+    - name: Include h.265
+      run: sudo apt-get install libx265-dev libnuma-dev
+    
+    - name: Include VPX
+      run: sudo apt-get install libvpx-dev
+      
+    - name: Include AAC
+      run: sudo apt-get install libfdk-aac-dev
+      
+    - name: Include MP3
+      run: sudo apt-get install libmp3lame-dev
+      
+    - name: Include Opus
+      run: sudo apt-get install libopus-dev
+       
+    - name: libaom
+      run: |
+        cd ~/ffmpeg_sources && \
+        git -C aom pull 2> /dev/null || git clone --depth 1 https://aomedia.googlesource.com/aom && \
+        mkdir -p aom_build && \
+        cd aom_build && \
+        PATH="$HOME/bin:$PATH" cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$HOME/ffmpeg_build" -DENABLE_SHARED=off -DENABLE_NASM=on ../aom && \
+        PATH="$HOME/bin:$PATH" make && \
+        make install
+    
+    - name: Compile
+      run: |
+        cd ~/ffmpeg_sources && \
+        wget -O ffmpeg-snapshot.tar.bz2 https://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2 && \
+        tar xjvf ffmpeg-snapshot.tar.bz2 && \
+        cd ffmpeg && \
+        PATH="$HOME/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure \
+          --prefix="$HOME/ffmpeg_build" \
+          --pkg-config-flags="--static" \
+          --extra-cflags="-I$HOME/ffmpeg_build/include" \
+          --extra-ldflags="-L$HOME/ffmpeg_build/lib" \
+          --extra-libs="-lpthread -lm" \
+          --bindir="$HOME/bin" \
+          --enable-gpl \
+          --enable-gnutls \
+          --enable-libaom \
+          --enable-libass \
+          --enable-libfdk-aac \
+          --enable-libfreetype \
+          --enable-libmp3lame \
+          --enable-libopus \
+          --enable-libvorbis \
+          --enable-libvpx \
+          --enable-libx264 \
+          --enable-libx265 \
+          --enable-nonfree && \
+        PATH="$HOME/bin:$PATH" make && \
+        make install && \
+        hash -r
+      
