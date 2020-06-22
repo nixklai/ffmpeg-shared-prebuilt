@@ -100,8 +100,8 @@ jobs:
         export PKG_CONFIG_PATH="${{ github.workspace }}/ffmpeg_build/lib/pkgconfig"
         ./configure \
           --prefix="${{ github.workspace }}/ffmpeg_build" \
-          --extra-cflags="-I${{ github.workspace }}/ffmpeg_build/include -fstack-protector-strong -Wformat -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -fPIC" \
-          --extra-ldflags="-L${{ github.workspace }}/ffmpeg_build/lib" \
+          --extra-cflags="-I${{ github.workspace }}/ffmpeg_build/include,-fPIC" \
+          --extra-ldflags="-L${{ github.workspace }}/ffmpeg_build/lib,-Wl,-Bsymbolic" \
           --enable-pic
           --extra-libs="-lpthread -lm" \
           --bindir="${{ github.workspace }}/bin" \
