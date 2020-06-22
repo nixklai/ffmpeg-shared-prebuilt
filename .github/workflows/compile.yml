@@ -47,6 +47,7 @@ jobs:
             wget \
             yasm \
             zlib1g-dev
+            
     - name: Make directories
       run: mkdir -p ~/ffmpeg_sources ~/bin
 
@@ -72,8 +73,16 @@ jobs:
       
     - name: Include Opus
       run: sudo apt-get install libopus-dev
-       
+   
+    - name: Grab libaom
+      uses: actions/cache@v2
+      id: cache-libaom
+      with:
+        path: $HOME/ffmpeg_build
+        key: $HOME/ffmpeg_build 
+
     - name: libaom
+      if: steps.cache-libaom.outputs.cache-hit != 'true'
       run: |
         cd ~/ffmpeg_sources && \
         git -C aom pull 2> /dev/null || git clone --depth 1 https://aomedia.googlesource.com/aom && \
@@ -85,19 +94,22 @@ jobs:
     
     - name: Compile
       run: |
-        cd ~/ffmpeg_sources && \
-        wget -O ffmpeg-snapshot.tar.bz2 https://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2 && \
-        tar xjvf ffmpeg-snapshot.tar.bz2 && \
-        cd ffmpeg && \
-        PATH="$HOME/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure \
+        cd ~/ffmpeg_sources
+        wget -O ffmpeg-snapshot.tar.bz2 https://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2
+        tar xjvf ffmpeg-snapshot.tar.bz2
+        cd ffmpeg
+        export PATH="$HOME/bin:$PATH"
+        export PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig"
+        ./configure \
           --prefix="$HOME/ffmpeg_build" \
           --pkg-config-flags="--static" \
           --extra-cflags="-I$HOME/ffmpeg_build/include" \
           --extra-ldflags="-L$HOME/ffmpeg_build/lib" \
+          -fPIC \
+          --enable-pic
           --extra-libs="-lpthread -lm" \
           --bindir="$HOME/bin" \
           --enable-gpl \
-          --enable-gnutls \
           --enable-libaom \
           --enable-libass \
           --enable-libfdk-aac \
@@ -108,8 +120,9 @@ jobs:
           --enable-libvpx \
           --enable-libx264 \
           --enable-libx265 \
-          --enable-nonfree && \
-        PATH="$HOME/bin:$PATH" make && \
-        make install && \
+          --enable-nonfree \
+          --enable-shared
+        PATH="$HOME/bin:$PATH" make
+        make install
         hash -r
       
