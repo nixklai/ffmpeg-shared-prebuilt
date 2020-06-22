@@ -23,7 +23,9 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
     - name: Get dependencies from APK
-      run: sudo apt-get update -qq && sudo apt-get -y install \
+      run: |
+        sudo apt-get update
+        sudo apt-get update -qq && sudo apt-get -y install \
             autoconf \
             automake \
             build-essential \
